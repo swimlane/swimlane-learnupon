@@ -1,8 +1,10 @@
 [tool.poetry]
 name = "learnupon"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Michael Butler <michael.butler@swimlane.com>"]
+readme = "README.md"
+repository = "https://github.com/swimlane/swimlane-learnupon"
 
 [tool.poetry.dependencies]
 python = "^3.6"
