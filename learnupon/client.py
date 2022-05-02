@@ -171,7 +171,7 @@ class LearnUpon(LearnUponRestAPI):
             data["Markcomplete"]["date_completed"] = date_completed
         return self.request("post", "markcompletes", json=data, *args, **kwargs)
 
-    ### Items past this point still need to be tested...
+    # Items past this point still need to be tested...
 
     def get_groups(self, title=None, *args, **kwargs):
         """
