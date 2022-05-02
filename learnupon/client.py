@@ -1,147 +1,179 @@
-import requests
-from urllib.parse import urljoin
-
-membership_type_convert = {
-            'learner': 1,
-            'admin': 2,
-            'instructor': 3,
-            'manager': 4
-        }
+from .rest_client import LearnUponRestAPI
 
 
-class LearnUpon(object):
+class LearnUpon(LearnUponRestAPI):
+    def __init__(self, *args, **kwargs):
+        super(LearnUpon, self).__init__(*args, **kwargs)
 
-    def __init__(self, portal_url=None, username=None, password=None, verify=True):
-        for input in [portal_url, username, password]:
-            if not input:
-                raise Exception("Missing required input {}".format(input))
-
-        self.session = requests.session()
-        self.session.auth = (username, password)
-        self.session.verify = verify
-        self.base_url = urljoin(portal_url, 'api/v1/')
-        if not self.base_url.endswith('/'):
-            self.base_url += '/'
-
-        self.test_auth()
-
-    def request(self, method, endpoint, **kwargs):
-        endpoint = endpoint.lstrip("/")
-        url = urljoin(self.base_url, endpoint)
-        response = self.session.request(method=method, url=url, **kwargs)
-        response.raise_for_status()
-        return response.json()
-
-    def test_auth(self):
-        portals = self.request('get', 'portals')
-        if not portals['portals']:
-            raise Exception("This account does not have access to any portals!!")
-
-    def get_users(self):
+    def get_users(self, *args, **kwargs):
         """
         Gets all users from LearnUpon
         :return: List of Users :rtype list
         """
-        users = self.request('get', 'users')
+        users = self.request("get", "users", *args, **kwargs)
         return users
 
-    def search_for_user(self, email=None, username=None):
+    def get_user_by_username(self, username=None, *args, **kwargs):
         """
         Search for user via email OR username
-        :param email: Email address of user :type str
         :param username: Username of user :type str
         :return: Single User Dictionary :rtype dict
         """
-        params = None
-        if email:
-            params = {'email': email}
+        url = "users/search"
         if username:
-            params = {'username': username}
-        if not params:
-            raise ValueError("One of email or username must be provided")
-        user_search = self.request('get', 'users/search', params=params)
-        return user_search['user'][0]
+            url = url + "?username=" + username
+        else:
+            raise ValueError("Must provide value for username")
+        return self.request("get", url, *args, **kwargs)
 
-    def get_user(self, user_id):
+    def get_user_by_email(self, email=None, *args, **kwargs):
+        """
+        Search for user via email
+        :param email: Email address of user :type str
+        :return: Single User Dictionary :rtype dict
+        """
+        url = "users/search"
+        if email:
+            url = url + "?email=" + email
+        else:
+            raise ValueError("Must provide value for email")
+        return self.request("get", url, *args, **kwargs)
+
+    def get_user(self, user_id, *args, **kwargs):
         """
         Gets a user by user id
         :param user_id: The id of the user :type str
         :return: A dictionary of user attributes :rtype dict
         """
-        user = self.request('get', 'users/{}'.format(user_id))
-        return user['user'][0]
+        url = "users/{}".format(user_id)
+        return self.request("get", url, *args, **kwargs)
 
-    def create_user(self, email, password, username=None, last_name=None, first_name=None):
-        for input in [email, password]:
-            if not input:
-                raise ValueError("Missing required input {}".format(input))
+    def create_user(self, user, *args, **kwargs):
+        data = {"User": user}
+        return self.request("post", "users", json=data, *args, **kwargs)
 
-        if len(password) < 6:
-            raise ValueError("Password must be at least 6 characters")
-
-        data = {
-            "User": {
-                "last_name": last_name,
-                "first_name": first_name,
-                "email": email,
-                "username": username,
-                "password": password
-            }
-        }
-
-        new_user = self.request('post', 'users', json=data)
-        return new_user
-
-    # TODO continue testing update user functionality
-    # def update_user(self, user_data):
-    #     """
-    #     Updates an existing user in LearnUpon
-    #     :param user_data: A dictionary of user attributes :type dict
-    #     :return: A dictionary of the updated users attributes :rtype dict
-    #     """
-    #     data = {"User": {}}
-    #     for key in user_data:
-    #         if user_data[key]:
-    #             data['User'][key] = user_data[key]
-    #     updated_user = self.request('put', 'users/{}'.format(user_data['id']), json=data)
-    #     return updated_user
-
-    def delete_user(self, user_id):
+    def delete_user(self, user_id, *args, **kwargs):
         """
         Deletes a user by user_id
         :param user_id: The user id of the user to be deleted
         :return: True if deleted successfully :rtype boolean
         """
-        self.request('delete', 'users/{}'.format(user_id))
+        self.request("delete", "users/{}".format(user_id), *args, **kwargs)
         return True
 
+    def create_course(self, course, *args, **kwargs):
+        data = {"Course": course}
+        return self.request("post", "courses", json=data, *args, **kwargs)
 
-    def invite_user(self, email_address):
+    def publish_course(self, course_id, *args, **kwargs):
+        data = {"course_id": course_id}
+        return self.request("post", "courses/publish", json=data, *args, **kwargs)
+
+    def clone_course(
+        self, portal_id, source_course_id, publish_after_clone=True, *args, **kwargs
+    ):
         data = {
-            'Invite': {
-                'email': email_address
-            }
+            "clone_to_portal_id": "{}".format(portal_id),
+            "course_id": "{}".format(source_course_id),
+            "publish_after_clone": publish_after_clone,
         }
+        return self.request("post", "courses/clone", json=data, *args, **kwargs)
 
-        user_invite = self.request('post', 'portal_invite', json=data)
-        return user_invite
+    def add_modules(self, course_id, module_id, *args, **kwargs):
+        data = {
+            "course_id": "{}".format(course_id),
+            "module_id": "{}".format(module_id),
+        }
+        return self.request("post", "courses/add_modules", json=data, *args, **kwargs)
 
-    def get_courses(self, name=None, course_id=None):
+    def get_modules_by_course(self, course_id, *args, **kwargs):
+        return self.request(
+            "get", "modules?course_id={}".format(course_id), *args, **kwargs
+        )
+
+    def get_courses(self, *args, **kwargs):
         """
         Gets all courses in the portal.
         :param name: (Optional) The name of the course you are looking for
         :param course_id: (Optional) The course id of the course you are looking for
         :return: A list of courses with attributes :rtype list
         """
-        params = None
-        if name:
-            params = {'name': name}
-        elif course_id:
-            params = {'course_id': course_id}
-        courses = self.request('get', 'courses', params=params)
-        return courses['courses']
+        return self.request("get", "courses", *args, **kwargs)
 
-    def get_groups(self, title=None):
+    def get_course(self, course_id, *args, **kwargs):
+        """
+        Gets all courses in the portal.
+        :param name: (Optional) The name of the course you are looking for
+        :param course_id: (Optional) The course id of the course you are looking for
+        :return: A list of courses with attributes :rtype list
+        """
+        return self.request(
+            "get", "courses?course_id={}".format(course_id), *args, **kwargs
+        )
+
+    def create_enrollment(
+        self,
+        email=None,
+        course_id=None,
+        username=None,
+        course_name=None,
+        re_enroll_if_completed=False,
+        *args,
+        **kwargs
+    ):
+        data = {"Enrollment": {"re_enroll_if_completed": re_enroll_if_completed}}
+        if email:
+            data["Enrollment"]["email"] = email
+        if course_id:
+            data["Enrollment"]["course_id"] = course_id
+        if username:
+            data["Enrollment"]["username"] = username
+        if course_name:
+            data["Enrollment"]["course_name"] = course_name
+        return self.request("post", "enrollments", json=data, *args, **kwargs)
+
+    def get_enrollment(
+        self, enrollment_id=None, email=None, course_id=None, *args, **kwargs
+    ):
+        params = []
+        if enrollment_id:
+            return self.request("get", "enrollments/{}".format(enrollment_id))
+        if email:
+            params.append("email={}".format(email))
+        if course_id:
+            params.append("course_id={}".format(course_id))
+        if len(params) > 0:
+            url = "enrollments/search?" + "&".join(params)
+            return self.request("get", url, *args, **kwargs)
+        raise ValueError(
+            "Must specify at least one argument: enrollment_id, email, course_id"
+        )
+
+    def create_markcomplete(
+        self,
+        enrollment_id=None,
+        date_completed=None,
+        status=None,
+        percentage=None,
+        *args,
+        **kwargs
+    ):
+        data = {
+            "Markcomplete": {
+                "enrollment_id": enrollment_id,
+                "status": status,
+                "notes": "Imported from Archer Academy 1.0",
+            }
+        }
+        if percentage:
+            data["Markcomplete"]["percentage"] = str(percentage)
+        if date_completed:
+            data["Markcomplete"]["date_completed"] = date_completed
+        return self.request("post", "markcompletes", json=data, *args, **kwargs)
+
+    # Items past this point still need to be tested...
+
+    def get_groups(self, title=None, *args, **kwargs):
         """
         Gets the groups from LearnUpon
         :param title: (Optional) The name of the group you are looking for
@@ -149,53 +181,50 @@ class LearnUpon(object):
         """
         params = None
         if title:
-            params = {'title': title}
-        groups = self.request('get', 'groups', params=params)
-        return groups['groups']
+            params = {"title": title}
+        return self.request("get", "groups", params=params, *args, **kwargs)
 
-    def create_group(self, name, description=None):
+    def create_group(self, name, description=None, *args, **kwargs):
         """
         Create a new group in Learnupon
         :param name: The Name of your new group
         :param description: (Optional) The description of your group
         :return: A dictionary of the new group attributes :rtype dict
         """
+        data = {"Group": {"title": name, "description": description}}
+        return self.request("post", "groups", json=data, *args, **kwargs)
+
+    def add_user_to_group(self, group_id, user_id, *args, **kwargs):
+        data = {"GroupMembership": {"group_id": group_id, "user_id": user_id}}
+        return self.request("post", "group_memberships", json=data, *args, **kwargs)
+
+    def create_group_invite(
+        self,
+        group_id,
+        email_addresses,
+        group_membership_type="Learner",
+        *args,
+        **kwargs
+    ):
+        membership_type_convert = {
+            "learner": 1,
+            "admin": 2,
+            "instructor": 3,
+            "manager": 4,
+        }
+        group_membership_type_id = membership_type_convert[
+            group_membership_type.lower()
+        ]
+        email_addresses = (
+            email_addresses
+            if isinstance(email_addresses, str)
+            else ",".join(email_addresses)
+        )
         data = {
-            'Group': {
-                'title': name,
-                'description': description
+            "GroupInvite": {
+                "email_addresses": email_addresses,
+                "group_id": group_id,
+                "group_membership_type_id": group_membership_type_id,
             }
         }
-
-        new_group = self.request('post', 'groups', json=data)
-        return new_group
-
-
-
-    def add_user_to_group(self, group_id, user_id):
-        data = {
-            'GroupMembership': {
-                'group_id': group_id,
-                'user_id': user_id
-            }
-        }
-
-        add_user = self.request('post', 'group_memberships', json=data)
-        return add_user
-
-    def create_group_invite(self, group_id, email_addresses, group_membership_type='Learner'):
-
-        group_membership_type_id = membership_type_convert[group_membership_type.lower()]
-
-        email_addresses = email_addresses if isinstance(email_addresses, str) else ",".join(email_addresses)
-
-        data = {
-            'GroupInvite': {
-                'email_addresses': email_addresses,
-                'group_id': group_id,
-                'group_membership_type_id': group_membership_type_id
-            }
-        }
-
-        group_invite = self.request('post', 'group_invites', json=data)
-        return group_invite
+        return self.request("post", "group_invites", json=data, *args, **kwargs)
