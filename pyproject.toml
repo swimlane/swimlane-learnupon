@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "learnupon"
-version = "0.2.0"
+version = "1.0.0-alpha.0"
 description = ""
 authors = ["Michael Butler <michael.butler@swimlane.com>", "Kyle Burk <kyle.burk@archerirm.com>"]
 license = "MIT"
