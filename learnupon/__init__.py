@@ -5,4 +5,4 @@ from .models import User
 
 __all__ = ["LearnUpon", "User"]
 
-__version__ = "0.2.0"
+__version__ = "1.0.0-alpha.0"
