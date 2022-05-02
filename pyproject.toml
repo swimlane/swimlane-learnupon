@@ -2,17 +2,17 @@
 name = "learnupon"
 version = "0.2.0"
 description = ""
-authors = ["Michael Butler <michael.butler@swimlane.com>"]
-readme = "README.md"
-repository = "https://github.com/swimlane/swimlane-learnupon"
+authors = ["Michael Butler <michael.butler@swimlane.com>", "Kyle Burk <kyle.burk@archerirm.com>"]
+license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.6"
-requests = "^2.22"
+python = "^3.8"
+requests = "^2.27.1"
+backoff = "^2.0.1"
+uuid = "^1.30"
 
 [tool.poetry.dev-dependencies]
-pytest = "^3.0"
 
 [build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
